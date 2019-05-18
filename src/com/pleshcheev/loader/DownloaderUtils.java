@@ -15,13 +15,8 @@ import java.nio.charset.Charset;
 import java.nio.file.*;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Scanner;
 
 public class DownloaderUtils {
-
-    private DownloaderUtils() {
-        throw new IllegalStateException("No instances, please");
-    }
 
     /**
      * A utility for saving a web page file or a file from any Internet sites
@@ -32,7 +27,6 @@ public class DownloaderUtils {
      * @param  open if open equals true resource will be opened in your browser
      */
     public static void DownloadUtil(String uri, String dir, boolean open) throws IOException {
-        dir = checkDir(dir, uri);
         Path path = DownloaderUtils.download(DownloaderUtils.toURL(uri), dir);
         if (DownloaderUtils.isHtml(path)) {
             DownloaderUtils.downloadHtml(DownloaderUtils.toURL(uri), path);
@@ -70,36 +64,25 @@ public class DownloaderUtils {
         return null;
     }
 
-    private static String checkDir(String dir, String uri) throws IOException {
-        if (dir == null) {
-            return null;
-        }
-        String name = extractName(URI.create(uri).toURL());
-        if (Files.exists(Paths.get(dir, name).getParent())){
-            String yes = "y";
-            String no  = "n";
-            System.out.printf("The folder exists.\n" +
-                    "Do you want to use a unique name or want to overwrite a file?\n");
-            int flag_of_work = 100;
-            while (flag_of_work-- > 0) {
-                System.out.printf("Press \'%s\' to use unique name or press \'%s\'\n", yes, no);
-                Scanner in = new Scanner(System.in);
-                String input = in.nextLine();
-                if (input.equals(yes)) {
-                    int i = 1;
-                    while (Files.exists(Paths.get(dir + "-" + Integer.toString(i), name).getParent())) {
-                        i++;
-                    }
-                    dir = dir + "-" + Integer.toString(i);
-                    return dir;
-                }
+    public static String extractName(URL url) {
+        final String path = url.getPath();
 
-                if (input.equals(no)) {
-                    return dir;
-                }
-            }
+        System.out.println("Path: " + path);
+
+        if (path == null || path.isEmpty()) {
+            return "index.html";
         }
-        return dir;
+
+        if (path.equals("/")) {
+            return "unknown";
+        }
+
+        if (path.contains("/")) {
+            String[] tokens = path.split("/");
+            return tokens[tokens.length - 1];
+        }
+
+        return path;
     }
 
     private static String toURL(String uri) {
@@ -132,27 +115,6 @@ public class DownloaderUtils {
 
             return path;
         }
-    }
-
-    private static String extractName(URL url) {
-        final String path = url.getPath();
-
-        System.out.println("Path: " + path);
-
-        if (path == null || path.isEmpty()) {
-            return "index.html";
-        }
-
-        if (path.equals("/")) {
-            return "unknown";
-        }
-
-        if (path.contains("/")) {
-            String[] tokens = path.split("/");
-            return tokens[tokens.length - 1];
-        }
-
-        return path;
     }
 
     private static String extractMimeType(String path) throws IOException {
@@ -253,5 +215,9 @@ public class DownloaderUtils {
 
     private static void fileView(Path path) throws IOException {
         Desktop.getDesktop().browse(path.toUri());
+    }
+
+    private DownloaderUtils() {
+        throw new IllegalStateException("No instances, please");
     }
 }
