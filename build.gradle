@@ -1,0 +1,18 @@
+group 'com.pleshcheev'
+version '1.0-SNAPSHOT'
+
+apply plugin: "java"
+apply plugin: "application"
+
+sourceSets.main.java.srcDirs = ['src']
+mainClassName = 'com.pleshcheev.loader.ApplicationMain'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile group: 'org.jsoup', name: 'jsoup', version: '1.12.1'
+}

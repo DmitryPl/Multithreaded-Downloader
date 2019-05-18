@@ -1,0 +1,14 @@
+#IntelliJ IDEA
+.idea
+*.iml
+
+#Gradle
+.gradle
+/gradle/
+/build/
+
+gradlew
+gradlew.bat
+
+#MacOS
+.DS_Store
