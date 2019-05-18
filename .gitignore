@@ -9,6 +9,7 @@
 
 gradlew
 gradlew.bat
+settings.gradle
 
 #MacOS
 .DS_Store

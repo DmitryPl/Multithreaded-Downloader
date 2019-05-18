@@ -13,6 +13,10 @@ repositories {
     mavenCentral()
 }
 
+run {
+    standardInput = System.in
+}
+
 dependencies {
     compile group: 'org.jsoup', name: 'jsoup', version: '1.12.1'
 }

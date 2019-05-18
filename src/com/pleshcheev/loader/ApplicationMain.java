@@ -13,6 +13,7 @@ public class ApplicationMain {
         open = Dialog.getOpenState();
         dir = Dialog.checkDir(dir, uri);
 
-        DownloaderUtils.DownloadUtil(uri, dir, open);
+        DownloaderUtils utils = new DownloaderUtils();
+        utils.DownloadUtil(uri, dir, open);
     }
 }

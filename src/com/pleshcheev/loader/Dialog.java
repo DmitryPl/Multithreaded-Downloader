@@ -20,8 +20,9 @@ public class Dialog {
             int flag_of_work = 100;
             while (flag_of_work-- > 0) {
                 System.out.printf("Press \'%s\' to use unique name or press \'%s\'\n", yes, no);
-                Scanner in = new Scanner(System.in);
-                String input = in.nextLine();
+                //Scanner in = new Scanner(System.in);
+                //String input = in.nextLine();
+                String input = "n";
                 if (input.equals(yes)) {
                     int i = 1;
                     while (Files.exists(Paths.get(dir + "-" + Integer.toString(i), name).getParent())) {
@@ -46,11 +47,12 @@ public class Dialog {
         System.out.printf("Do you want to enter url? Otherwise the test uri will be used\n");
         System.out.printf("Press \'%s\' to use test uri or press \'%s\'\n", no, yes);
 
-        Scanner in = new Scanner(System.in);
-        String input = in.nextLine();
+        //Scanner in = new Scanner(System.in);
+        //String input = in.nextLine();
+        String input = "n";
         if (input.equals(yes)) {
             System.out.printf("Enter address\n");
-            uri = in.nextLine();
+            //uri = in.nextLine();
         }
 
         return uri;
@@ -62,8 +64,9 @@ public class Dialog {
         System.out.printf("Do you want to open after download?\n");
         System.out.printf("Press \'%s\' or \'%s\'\n", yes, no);
 
-        Scanner in = new Scanner(System.in);
-        String input = in.nextLine();
+        //Scanner in = new Scanner(System.in);
+        //String input = in.nextLine();
+        String input = "n";
         if (input.equals(yes)) {
             return true;
         }

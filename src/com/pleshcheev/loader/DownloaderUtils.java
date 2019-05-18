@@ -13,10 +13,14 @@ import java.net.URI;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.file.*;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.Stack;
 
 public class DownloaderUtils {
+
+    private static ConcurrentHashMap<String, Path> filesDownloaded = new ConcurrentHashMap<>();
+    private static Stack<Data> dataSet = new Stack<>();
+    private static int numOfThreads = 3;
 
     /**
      * A utility for saving a web page file or a file from any Internet sites
@@ -26,7 +30,7 @@ public class DownloaderUtils {
      * if dir equals null file will be saved in resent directory
      * @param  open if open equals true resource will be opened in your browser
      */
-    public static void DownloadUtil(String uri, String dir, boolean open) throws IOException {
+    public void DownloadUtil(String uri, String dir, boolean open) throws IOException {
         Path path = DownloaderUtils.download(DownloaderUtils.toURL(uri), dir);
         if (DownloaderUtils.isHtml(path)) {
             DownloaderUtils.downloadHtml(DownloaderUtils.toURL(uri), path);
@@ -83,6 +87,44 @@ public class DownloaderUtils {
         }
 
         return path;
+    }
+
+    public static Path fileDownload(Path path, String uri) throws IOException {
+        try {
+            Path parent = path.getParent();
+            if (parent == null) {
+                return download(uri, Paths.get(".") + "/files");
+            }
+            return download(uri, path.getParent().toString() + "/files");
+        } catch (Exception e) {
+            boolean reThrow = true;
+
+            if (e.getMessage() != null && e.getMessage().startsWith("android-app")) reThrow = false;
+
+            if (e.getMessage() != null && e.getMessage().startsWith("unknown protocol:")) reThrow = false;
+
+            if (e.getMessage() != null && e.getMessage().startsWith("Expected authority at")) reThrow = false;
+
+            if (e.getMessage() != null && e.getMessage().startsWith("Server returned HTTP response code: 403 for URL: ")) reThrow = false;
+
+            if (e.getMessage() != null && e.getMessage().startsWith("Server returned HTTP response code: 401 for URL: ")) reThrow = false;
+
+            if (e.getMessage() != null && e.getMessage().startsWith("URI is not absolute")) reThrow = false;
+
+            if (e instanceof MalformedURLException) reThrow = false;
+
+            if (e instanceof FileAlreadyExistsException) reThrow = false;
+
+            if (reThrow) throw e;
+
+            return null;
+        }
+    }
+
+    private static void initThreads() {
+        for (int i = 0; i < numOfThreads; i++) {
+            new Downloader("thread:" + Integer.toString(i), dataSet, filesDownloaded);
+        }
     }
 
     private static String toURL(String uri) {
@@ -146,78 +188,26 @@ public class DownloaderUtils {
         }
     }
 
-    private static void downloadHtml(String originUri, Path path) throws IOException {
-        Map<String, Path> filesDownloaded = new HashMap<>();
+    private static void pushToStack(String tag, String attr, Path path, Document document) {
+        for (Element elem : document.getElementsByTag(tag)) {
+            String uri = elem.attr(attr);
+            uri = toURL(uri);
+            dataSet.push(new Data(uri, path, elem, attr));
+        }
+    }
 
+    private static void downloadHtml(String originUri, Path path) throws IOException {
         Document document = Jsoup.parse(Files.newInputStream(path), "UTF-8", originUri);
 
-        for (Element img : document.getElementsByTag("img")) {
-            String uri = img.attr("src");
-            Path imgPath;
-            uri = toURL(uri);
-            if (null == (imgPath = filesDownloaded.get(uri))) {
-                imgPath = fileDownload(path, uri);
-                filesDownloaded.put(uri, imgPath);
-            }
+        pushToStack("img", "src", path, document);
+        pushToStack("link", "href", path, document);
 
-            if (imgPath != null) {
-                img.attr("src", imgPath.toString());
-            }
-        }
-        for (Element link : document.getElementsByTag("link")) {
-            String uri = link.attr("href");
-            Path linkPath;
-            uri = toURL(uri);
-            if (null == (linkPath = filesDownloaded.get(uri))) {
-                linkPath = fileDownload(path, uri);
-                filesDownloaded.put(uri, linkPath);
-            }
-
-            if (linkPath != null) {
-                link.attr("href", linkPath.toString());
-            }
-        }
+        initThreads();
 
         Files.write(path, document.toString().getBytes(Charset.forName("UTF-8")), StandardOpenOption.TRUNCATE_EXISTING);
     }
 
-    private static Path fileDownload(Path path, String uri) throws IOException {
-        try {
-            Path parent = path.getParent();
-            if (parent == null) {
-                return download(uri, Paths.get(".") + "/files");
-            }
-            return download(uri, path.getParent().toString() + "/files");
-        } catch (Exception e) {
-            boolean reThrow = true;
-
-            if (e.getMessage() != null && e.getMessage().startsWith("android-app")) reThrow = false;
-
-            if (e.getMessage() != null && e.getMessage().startsWith("unknown protocol:")) reThrow = false;
-
-            if (e.getMessage() != null && e.getMessage().startsWith("Expected authority at")) reThrow = false;
-
-            if (e.getMessage() != null && e.getMessage().startsWith("Server returned HTTP response code: 403 for URL: ")) reThrow = false;
-
-            if (e.getMessage() != null && e.getMessage().startsWith("Server returned HTTP response code: 401 for URL: ")) reThrow = false;
-
-            if (e.getMessage() != null && e.getMessage().startsWith("URI is not absolute")) reThrow = false;
-
-            if (e instanceof MalformedURLException) reThrow = false;
-
-            if (e instanceof FileAlreadyExistsException) reThrow = false;
-
-            if (reThrow) throw e;
-
-            return null;
-        }
-    }
-
     private static void fileView(Path path) throws IOException {
         Desktop.getDesktop().browse(path.toUri());
-    }
-
-    private DownloaderUtils() {
-        throw new IllegalStateException("No instances, please");
     }
 }
