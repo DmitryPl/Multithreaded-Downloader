@@ -13,6 +13,7 @@ import java.net.URI;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.file.*;
+import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Stack;
 
@@ -20,7 +21,12 @@ public class DownloaderUtils {
 
     private static ConcurrentHashMap<String, Path> filesDownloaded = new ConcurrentHashMap<>();
     private static Stack<Data> dataSet = new Stack<>();
-    private static int numOfThreads = 3;
+    private static int numOfThreads ;
+
+    private DownloaderUtils() throws Exception { throw new Exception(); }
+    DownloaderUtils(int num) {
+        numOfThreads = num;
+    }
 
     /**
      * A utility for saving a web page file or a file from any Internet sites
@@ -30,7 +36,7 @@ public class DownloaderUtils {
      * if dir equals null file will be saved in resent directory
      * @param  open if open equals true resource will be opened in your browser
      */
-    public void DownloadUtil(String uri, String dir, boolean open) throws IOException {
+    public void DownloadUtil(String uri, String dir, boolean open) throws IOException, InterruptedException {
         Path path = DownloaderUtils.download(DownloaderUtils.toURL(uri), dir);
         if (DownloaderUtils.isHtml(path)) {
             DownloaderUtils.downloadHtml(DownloaderUtils.toURL(uri), path);
@@ -121,9 +127,14 @@ public class DownloaderUtils {
         }
     }
 
-    private static void initThreads() {
+    private static void initThreads() throws InterruptedException {
+        ArrayList<Downloader> threadList = new ArrayList<>();
         for (int i = 0; i < numOfThreads; i++) {
-            new Downloader("thread:" + Integer.toString(i), dataSet, filesDownloaded);
+            threadList.add(new Downloader("thread:" + Integer.toString(i), dataSet, filesDownloaded));
+        }
+        for (Downloader tmp : threadList) {
+            tmp.join();
+            System.out.println("End:" + tmp.thread.getName());
         }
     }
 
@@ -149,7 +160,12 @@ public class DownloaderUtils {
             if (dir != null) {
                 path = Paths.get(dir, name);
                 Files.createDirectories(path.getParent());
-                Files.copy(is, path, StandardCopyOption.REPLACE_EXISTING);
+                try {
+                    Files.copy(is, path, StandardCopyOption.REPLACE_EXISTING);
+                }
+                catch (AccessDeniedException e) {
+                    System.out.println(">>> AccessDeniedException !!!");
+                }
             } else {
                 path = Paths.get(name);
                 Files.copy(is, path, StandardCopyOption.REPLACE_EXISTING);
@@ -196,11 +212,15 @@ public class DownloaderUtils {
         }
     }
 
-    private static void downloadHtml(String originUri, Path path) throws IOException {
+    private static void downloadHtml(String originUri, Path path) throws IOException, InterruptedException {
         Document document = Jsoup.parse(Files.newInputStream(path), "UTF-8", originUri);
 
         pushToStack("img", "src", path, document);
         pushToStack("link", "href", path, document);
+
+        for (Data that : dataSet) {
+            System.out.printf("%s %s %s\n", that.attr, that.path, that.uri);
+        }
 
         initThreads();
 
